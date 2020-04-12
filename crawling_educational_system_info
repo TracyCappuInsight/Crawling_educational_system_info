@@ -1,0 +1,80 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Apr 12 13:07:40 2020
+
+@author: Cappu
+"""
+
+# import 4 libraries
+import requests
+import json
+import re
+import pandas as pd
+
+# get into url
+#get_rul_chinese educational system 
+url = 'http://wrdvpn.zufe.edu.cn/http/77726476706e69737468656265737421fae05988692a7d567b468ca88d1b203b/jwglxt/xtgl/login_slogin.html'
+#requests_ get url and analyze
+#input_headers_information
+#headers involve: user-agent(google chrome)/cookie
+headers = {
+        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
+        ,"Cookie":"wengine_vpn_ticket=665a8f93264e9d45; refresh=1"
+}
+#input username and password_hide
+data = {
+        'yhm':"***",   # username
+        "mm":"***",  # password
+}
+#open a session/continue cookies
+session = requests.session()
+session.post(url,headers=headers,data=data)
+
+#crawlling information's format
+course_list_detail = [["课程板块","教学地点","教学时间","备注"]]
+
+#get_course_detail
+def get_course_detail(url_index_2):
+    r = session.post(url_index_2,headers=headers)
+    #content = r.content.decode()
+    result = r.content.decode().replace(' ', '').replace('\n', '').replace('\r', '')#get json/content 
+    kcgsmc = str(re.findall('"kcgsmc":".*?"',result))[12:-3]
+    jxdd = str(re.findall('"jxdd":".*?"',result))[10:-3]
+    sksj = str(re.findall('"sksj":".*?"',result))[10:-3]
+    xkbz = str(re.findall('"xkbz":".*?"',result))[10:-3]
+    global tmp_list_2
+    tmp_list_2 = [kcgsmc,jxdd,sksj,xkbz]
+    
+def set_kch_id(kch_id):    
+    url_index_2='http://wrdvpn.zufe.edu.cn/http/77726476706e69737468656265737421fae05988692a7d567b468ca88d1b203b/jwglxt/xsxk/zzxkyzb_cxJxbWithKchZzxkYzb.html?vpn-12-o1-jwxt.zufe.edu.cn&gnmkdm=N253512&su=160103900104&rwlx=2&xkly=0&bklx_id=0&xqh_id=2&jg_id=03&zyh_id=0390&zyfx_id=wfx&njdm_id=2016&bh_id=16039001&xbm=1&xslbdm=wlb&ccdm=w&xsbj=4294967296&sfkknj=0&sfkkzy=0&sfznkx=0&zdkxms=0&sfkxq=0&sfkcfx=0&kkbk=0&kkbkdj=0&xkxnm=2019&xkxqm=12&rlkz=0&kklxdm=10&kch_id='+str(kch_id)+'&xkkz_id=A1E3328A1E0B79B1E053A40810AC64CF&cxbj=0&fxbj=0'
+    get_course_detail(url_index_2)
+    
+def get_course_brief(url_index):
+    r = session.post(url_index,headers=headers)
+    #content = r.content.decode()
+    content = r.content.decode().replace(' ', '').replace('\n', '').replace('\r', '')
+    
+    pattern=re.compile('"cxbj.*?year',re.S)
+     
+    results = re.findall(pattern, content)
+    for result in results:
+        jxbmc = str(re.findall('"jxbmc":".*?"',result))[11:-3]
+        kcmc = str(re.findall('"kcmc":".*?"',result))[10:-3]
+        xf = str(re.findall('"xf":".*?"',result))[8:-3]
+        kch_id = str(re.findall('"kch":".*?"',result))[9:-3]
+        set_kch_id(kch_id)
+        tmp_list = [jxbmc,kcmc,xf]+tmp_list_2
+        course_list.append(tmp_list)
+    
+num1 = 1 ; num2 = 10
+course_list = []
+for i in range(9):
+    url_index='http://wrdvpn.zufe.edu.cn/http/77726476706e69737468656265737421fae05988692a7d567b468ca88d1b203b/jwglxt/xsxk/zzxkyzb_cxZzxkYzbPartDisplay.html?vpn-12-o1-jwxt.zufe.edu.cn&gnmkdm=N253512&su=160103900104&rwlx=2&xkly=0&bklx_id=0&xqh_id=2&jg_id=03&zyh_id=0390&zyfx_id=wfx&njdm_id=2016&bh_id=16039001&xbm=1&xslbdm=wlb&ccdm=w&xsbj=4294967296&sfkknj=0&sfkkzy=0&sfznkx=0&zdkxms=0&sfkxq=0&sfkcfx=0&kkbk=0&kkbkdj=0&sfkgbcx=0&sfrxtgkcxd=0&tykczgxdcs=0&xkxnm=2019&xkxqm=12&kklxdm=10&rlkz=0&kspage='+str(num1)+'&jspage='+str(num2)+'&jxbzb='
+    try:
+        get_course_brief(url_index)
+    except:
+        print(i)
+        break
+    num1+=10; num2+=10
+df = pd.DataFrame(course_list,columns=["课程编号","课程名称","课程学分","课程板块","教学地点","教学时间","备注"])
+print(df)# get dateframe
